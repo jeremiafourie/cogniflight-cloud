@@ -1,9 +1,5 @@
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-  <tr>
-    <td align="left"><h1>Cogniflight Cloud</h1></td>
-    <td align="right"><img src="cogniflight-logo.png" alt="Cogniflight Logo" width="80" /></td>
-  </tr>
-</table>
+<img src="assets/logo.png" align="right" width="80" alt="Cogniflight Logo">
+# Cogniflight Cloud
 Cloud services and infrastructure for Cogniflight: ingesting and processing device telemetry, storing fatigue analytics, and exposing secure endpoints for visualization and alerting.
 ## Overview
 [TODO]
