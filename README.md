@@ -1,3 +1,6 @@
+<p align="right">
+  <img src="cogniflight-logo.png" alt="Cogniflight Logo" width="120" />
+</p>
 # Cogniflight Cloud
 Cloud services and infrastructure for Cogniflight: ingesting and processing device telemetry, storing fatigue analytics, and exposing secure endpoints for visualization and alerting.
 ## Overview
