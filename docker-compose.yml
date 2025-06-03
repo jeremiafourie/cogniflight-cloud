@@ -1,0 +1,81 @@
+services:
+
+  influxdb:
+    image: influxdb:2.7
+    restart: unless-stopped
+    ports:
+      - "${INFLUXDB_PORT:-8086}:8086"
+    volumes:
+      - ./influxdb-data:/var/lib/influxdb2
+    profiles:
+      - receive_mqtt
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PWD:-supersecret}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-myorg}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-telegraf}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-mytoken}
+
+  telegraf:
+    image: telegraf:1.34
+    restart: unless-stopped
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    profiles:
+      - receive_mqtt
+    environment:
+      MQTT_URL: "${TELEGRAF_MQTT_URL:-ssl://${MQTT_DOMAIN:-mosquitto}:8883}"
+      INSECURE_SKIP_VERIFY: "${INSECURE_SKIP_VERIFY_MQTT:-true}"
+
+      INFLUX_URL: ${INFLUXDB_URL:-http://influxdb:8086}
+      INFLUX_TOKEN: ${INFLUXDB_TOKEN:-mytoken}
+      INFLUX_ORG: ${INFLUXDB_ORG:-myorg}
+      INFLUX_BUCKET: ${INFLUXDB_BUCKET:-telegraf}
+    depends_on:
+      - influxdb
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0-openssl
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+      - "${TLS_CERTFILE_PATH:-${TLS_CERT_DIR:-./self-signed-certs/}${TLS_CERTFILE:-fullchain.pem}}:/mosquitto/certs/fullchain.pem:ro"
+      - "${TLS_KEYFILE_PATH:-${TLS_CERT_DIR:-./self-signed-certs/}${TLS_KEYFILE:-privkey.pem}}:/mosquitto/certs/privkey.pem:ro"
+    profiles:
+      - mqtt-broker
+    ports:
+      - "${MQTTS_PORT:-8883}:8883"
+
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ohno
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PWD:-rootpass}
+      MONGO_INITDB_DATABASE: cogniflight
+    volumes:
+      - ./mongo-data:/data/db
+    profiles:
+      - mongo
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      MONGO_URI: "${MONGO_URI:-mongodb://ohno:${MONGO_PWD:-rootpass}@mongo:27017/?authSource=admin}"
+      INFLUX_URL: "${INFLUXDB_URL:-http:influxdb:8086}"
+      MQTT_URI: "${MQTTS_URL:-mosquitto:8883}"
+      MQTT_INSECURE_SKIP_VERIFY: "${INSECURE_SKIP_VERIFY_MQTT:-true}"
+    ports:
+      - 8080:8080
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+
