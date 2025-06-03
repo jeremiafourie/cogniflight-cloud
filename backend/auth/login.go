@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GenerateToken() (string, error) {
@@ -15,6 +16,19 @@ func GenerateToken() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
+}
+
+func HashPwd(pwd string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
+}
+
+func CheckPwd(hashedPwd, plainPwd string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd))
+	return err == nil
 }
 
 func Login(u types.UserStore, s types.SessionStore) gin.HandlerFunc {
@@ -35,7 +49,7 @@ func Login(u types.UserStore, s types.SessionStore) gin.HandlerFunc {
 			return
 		}
 
-		if req.Pwd == user.Pwd {
+		if CheckPwd(user.Pwd, req.Pwd) {
 			c.Status(200)
 			sess, _ := s.CreateSession(user.ID, user.Role)
 			c.SetCookie("sessid", sess.SessID, 3600, "/", "", false, true)

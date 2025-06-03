@@ -1,8 +1,12 @@
 package auth
 
 import (
+	"net/http/httptest"
+	"strings"
+	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -67,4 +71,21 @@ func (s FakeSessionStore) GetSession(SessID string) (*types.Session, error) {
 	} else {
 		return &session, nil
 	}
+}
+
+func FakeRequest(t testing.TB, r *gin.Engine, method, body, uri string, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequest(method, uri, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	if headers != nil {
+		for key, val := range headers {
+			req.Header.Set(key, val)
+		}
+	}
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	return w
 }
