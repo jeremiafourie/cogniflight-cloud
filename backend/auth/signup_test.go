@@ -108,3 +108,44 @@ func TestCreateSignupToken(t *testing.T) {
 		}
 	})
 }
+
+func TestSignup(t *testing.T) {
+	tokenStore := FakeSignupTokenStore{}
+	pilotTok, err := tokenStore.CreateSignupToken("271738749839", "example@gmail.com", types.RolePilot, time.Hour*6)
+	if err != nil {
+		t.Fatalf("TokenStore returned err: %v", err)
+	}
+
+	userStore := FakeUserStore{}
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/signup", Signup(&userStore, &tokenStore))
+
+	t.Run("No body is 400", func(t *testing.T) {
+		w := FakeRequest(t, r, "POST", "", "/signup", nil)
+
+		if w.Result().StatusCode != 400 {
+			t.Errorf("Wrong StatusCode: want %d got %d", 400, w.Result().StatusCode)
+		}
+	})
+
+	t.Run("No pwd is 400", func(t *testing.T) {
+		body := fmt.Sprintf(`{"tokStr": "%s"}`, pilotTok.TokStr)
+		w := FakeRequest(t, r, "POST", body, "/signup", nil)
+
+		if w.Result().StatusCode != 400 {
+			t.Errorf("Wrong StatusCode: want %d got %d", 400, w.Result().StatusCode)
+		}
+	})
+
+	t.Run("Valid request", func(t *testing.T) {
+		body := fmt.Sprintf(`{"tokStr": "%s", "pwd": "123pizza", "name": "John Doe"}`, pilotTok.TokStr)
+		w := FakeRequest(t, r, "POST", body, "/signup", nil)
+
+		if w.Result().StatusCode != 201 {
+			t.Errorf("Wrong StatusCode: want %d got %d", 201, w.Result().StatusCode)
+		}
+	})
+
+}

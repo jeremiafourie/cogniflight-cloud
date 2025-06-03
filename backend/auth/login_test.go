@@ -33,7 +33,7 @@ func TestLogin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	r := gin.New()
-	r.POST("/login", Login(userStore, sessionStore))
+	r.POST("/login", Login(&userStore, sessionStore))
 
 	t.Run("Correct credentials", func(t *testing.T) {
 		body := `{"email": "example@gmail.com", "pwd": "123pizza"}`

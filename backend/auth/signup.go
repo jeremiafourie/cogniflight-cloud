@@ -36,3 +36,18 @@ func CreateSignupToken(s types.SignupTokenStore) gin.HandlerFunc {
 		c.JSON(201, gin.H{"tokStr": tok.TokStr})
 	}
 }
+
+func Signup(u types.UserStore, s types.SignupTokenStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			Name   string `json:"name" binding:"required"`
+			Pwd    string `json:"pwd" binding:"required"`
+			TokStr string `json:"tokStr" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+		}
+
+		c.Status(201)
+	}
+}

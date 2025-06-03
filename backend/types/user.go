@@ -36,4 +36,5 @@ var ErrUserNotExist = errors.New("User does not exist")
 
 type UserStore interface {
 	GetUserByEmail(email string) (*User, error)
+	CreateUser(User User) (*User, error)
 }

@@ -12,10 +12,12 @@ import (
 )
 
 type FakeUserStore struct {
-	Users map[string]types.User
+	Users        map[string]types.User
+	CreateCalled bool
+	Created      *types.User
 }
 
-func (s FakeUserStore) GetUserByEmail(email string) (*types.User, error) {
+func (s *FakeUserStore) GetUserByEmail(email string) (*types.User, error) {
 	user, ok := s.Users[email]
 
 	if !ok {
@@ -23,6 +25,14 @@ func (s FakeUserStore) GetUserByEmail(email string) (*types.User, error) {
 	} else {
 		return &user, nil
 	}
+}
+
+func (s *FakeUserStore) CreateUser(User types.User) (*types.User, error) {
+	s.Users[User.Email] = User
+	s.CreateCalled = true
+	s.Created = &User
+
+	return &User, nil
 }
 
 type FakeSessionStore struct {
