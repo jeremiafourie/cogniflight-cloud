@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"context"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/RoundRobinHood/jlogging"
 	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,7 +19,7 @@ type FakeUserStore struct {
 	Created      *types.User
 }
 
-func (s *FakeUserStore) GetUserByEmail(email string) (*types.User, error) {
+func (s *FakeUserStore) GetUserByEmail(email string, ctx context.Context) (*types.User, error) {
 	user, ok := s.Users[email]
 
 	if !ok {
@@ -27,7 +29,11 @@ func (s *FakeUserStore) GetUserByEmail(email string) (*types.User, error) {
 	}
 }
 
-func (s *FakeUserStore) CreateUser(User types.User) (*types.User, error) {
+func (s *FakeUserStore) CreateUser(User types.User, ctx context.Context) (*types.User, error) {
+	if s.Users == nil {
+		s.Users = map[string]types.User{}
+	}
+
 	s.Users[User.Email] = User
 	s.CreateCalled = true
 	s.Created = &User
@@ -43,7 +49,7 @@ type FakeSessionStore struct {
 	SessID       string
 }
 
-func (s *FakeSessionStore) CreateSession(UserID primitive.ObjectID, Role types.Role) (*types.Session, error) {
+func (s *FakeSessionStore) CreateSession(UserID primitive.ObjectID, Role types.Role, ctx context.Context) (*types.Session, error) {
 	s.CreateCalled = true
 	s.UserID = UserID
 	s.Role = Role
@@ -73,7 +79,7 @@ func (s *FakeSessionStore) CreateSession(UserID primitive.ObjectID, Role types.R
 	}, nil
 }
 
-func (s FakeSessionStore) GetSession(SessID string) (*types.Session, error) {
+func (s FakeSessionStore) GetSession(SessID string, ctx context.Context) (*types.Session, error) {
 	session, ok := s.Sessions[SessID]
 
 	if !ok {
@@ -98,4 +104,12 @@ func FakeRequest(t testing.TB, r *gin.Engine, method, body, uri string, headers 
 	r.ServeHTTP(w, req)
 
 	return w
+}
+
+func InitTestEngine() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(jlogging.Middleware())
+	return r
 }

@@ -1,11 +1,12 @@
 package auth
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -16,7 +17,7 @@ type FakeSignupTokenStore struct {
 	Created      *types.SignupToken
 }
 
-func (s *FakeSignupTokenStore) CreateSignupToken(Phone, Email string, Role types.Role, Expiry time.Duration) (*types.SignupToken, error) {
+func (s *FakeSignupTokenStore) CreateSignupToken(Phone, Email string, Role types.Role, Expiry time.Duration, ctx context.Context) (*types.SignupToken, error) {
 	tokStr, err := GenerateToken()
 	s.CreateCalled = true
 
@@ -44,7 +45,7 @@ func (s *FakeSignupTokenStore) CreateSignupToken(Phone, Email string, Role types
 	return &tok, nil
 }
 
-func (s *FakeSignupTokenStore) GetSignupToken(TokStr string) (*types.SignupToken, error) {
+func (s *FakeSignupTokenStore) GetSignupToken(TokStr string, ctx context.Context) (*types.SignupToken, error) {
 	tok, ok := s.Tokens[TokStr]
 
 	if !ok {
@@ -55,8 +56,7 @@ func (s *FakeSignupTokenStore) GetSignupToken(TokStr string) (*types.SignupToken
 }
 
 func TestCreateSignupToken(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := InitTestEngine()
 
 	tokenStore := FakeSignupTokenStore{}
 	r.POST("/create-signup-token", CreateSignupToken(&tokenStore))
@@ -111,16 +111,16 @@ func TestCreateSignupToken(t *testing.T) {
 
 func TestSignup(t *testing.T) {
 	tokenStore := FakeSignupTokenStore{}
-	pilotTok, err := tokenStore.CreateSignupToken("271738749839", "example@gmail.com", types.RolePilot, time.Hour*6)
+	pilotTok, err := tokenStore.CreateSignupToken("271738749839", "example@gmail.com", types.RolePilot, time.Hour*6, context.Background())
 	if err != nil {
 		t.Fatalf("TokenStore returned err: %v", err)
 	}
 
 	userStore := FakeUserStore{}
+	sessionStore := FakeSessionStore{}
 
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.POST("/signup", Signup(&userStore, &tokenStore))
+	r := InitTestEngine()
+	r.POST("/signup", Signup(&userStore, &tokenStore, &sessionStore))
 
 	t.Run("No body is 400", func(t *testing.T) {
 		w := FakeRequest(t, r, "POST", "", "/signup", nil)
@@ -145,6 +145,32 @@ func TestSignup(t *testing.T) {
 
 		if w.Result().StatusCode != 201 {
 			t.Errorf("Wrong StatusCode: want %d got %d", 201, w.Result().StatusCode)
+		}
+
+		if !userStore.CreateCalled {
+			t.Error("Expected user to be created")
+		}
+
+		if !sessionStore.CreateCalled {
+			t.Error("Expected session to be created")
+		}
+
+		if sessionStore.Role != pilotTok.Role {
+			t.Errorf("Wrong role provided to sessStore: have %q want %q", sessionStore.Role, pilotTok.Role)
+		}
+
+		cookie := w.Result().Header.Get("Set-Cookie")
+		if !strings.Contains(cookie, "sessid="+sessionStore.SessID) {
+			t.Errorf("Expected Set-Cookie to contain sessid (set-cookie: %q)", cookie)
+		}
+	})
+
+	t.Run("Wrong token string", func(t *testing.T) {
+		body := `{"tokStr": "wrong", "pwd": "123pizza", "name": "John Doe"}`
+		w := FakeRequest(t, r, "POST", body, "/signup", nil)
+
+		if w.Result().StatusCode != 401 {
+			t.Errorf("Wrong StatusCode: want %d got %d", 401, w.Result().StatusCode)
 		}
 	})
 

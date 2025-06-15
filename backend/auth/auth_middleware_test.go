@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +11,7 @@ import (
 
 func TestAuthMiddleware(t *testing.T) {
 	sessionStore := &FakeSessionStore{}
-	sess, err := sessionStore.CreateSession(primitive.NewObjectID(), types.RolePilot)
+	sess, err := sessionStore.CreateSession(primitive.NewObjectID(), types.RolePilot, context.Background())
 	if err != nil {
 		t.Fatalf("SessionStore failed to create session: %v", err)
 	}

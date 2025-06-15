@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -35,6 +36,6 @@ type User struct {
 var ErrUserNotExist = errors.New("User does not exist")
 
 type UserStore interface {
-	GetUserByEmail(email string) (*User, error)
-	CreateUser(User User) (*User, error)
+	GetUserByEmail(email string, ctx context.Context) (*User, error)
+	CreateUser(User User, ctx context.Context) (*User, error)
 }

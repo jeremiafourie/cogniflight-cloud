@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -30,9 +29,7 @@ func TestLogin(t *testing.T) {
 	}
 	sessionStore := &FakeSessionStore{}
 
-	gin.SetMode(gin.TestMode)
-
-	r := gin.New()
+	r := InitTestEngine()
 	r.POST("/login", Login(&userStore, sessionStore))
 
 	t.Run("Correct credentials", func(t *testing.T) {

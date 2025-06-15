@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -18,6 +19,6 @@ type Session struct {
 var ErrSessionNotExist = errors.New("Session does not exist")
 
 type SessionStore interface {
-	CreateSession(UserID primitive.ObjectID, Role Role) (*Session, error)
-	GetSession(SessID string) (*Session, error)
+	CreateSession(UserID primitive.ObjectID, Role Role, ctx context.Context) (*Session, error)
+	GetSession(SessID string, ctx context.Context) (*Session, error)
 }

@@ -12,7 +12,7 @@ func AuthMiddleware(s types.SessionStore) gin.HandlerFunc {
 			c.AbortWithStatus(401)
 		}
 
-		_, err = s.GetSession(sess_id)
+		_, err = s.GetSession(sess_id, c.Request.Context())
 		if err != nil {
 			c.AbortWithStatus(401)
 		}

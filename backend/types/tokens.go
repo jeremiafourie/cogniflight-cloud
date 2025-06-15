@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -20,6 +21,6 @@ type SignupToken struct {
 var ErrSignupTokenNotExist = errors.New("Signup token does not exist")
 
 type SignupTokenStore interface {
-	CreateSignupToken(Phone, Email string, Role Role, Expiry time.Duration) (*SignupToken, error)
-	GetSignupToken(TokStr string) (*SignupToken, error)
+	CreateSignupToken(Phone, Email string, Role Role, Expiry time.Duration, ctx context.Context) (*SignupToken, error)
+	GetSignupToken(TokStr string, ctx context.Context) (*SignupToken, error)
 }
