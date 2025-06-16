@@ -82,4 +82,6 @@ services:
         - action: sync+restart
           path: ./backend
           target: /app
+    profiles:
+      - backend
 
