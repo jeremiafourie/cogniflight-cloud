@@ -15,10 +15,14 @@ func TestAuthMiddleware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SessionStore failed to create session: %v", err)
 	}
+	sess2, err := sessionStore.CreateSession(primitive.NewObjectID(), types.RoleATC, context.Background())
+	if err != nil {
+		t.Fatalf("SessionStore failed to create session: %v", err)
+	}
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.GET("/ping", AuthMiddleware(sessionStore), func(c *gin.Context) {
+	r.GET("/ping", AuthMiddleware(sessionStore, map[types.Role]struct{}{types.RolePilot: {}}), func(c *gin.Context) {
 		c.String(200, "pong!")
 	})
 
@@ -41,6 +45,13 @@ func TestAuthMiddleware(t *testing.T) {
 
 		if w.Result().StatusCode != 401 {
 			t.Errorf("Wrong StatusCode, have: %d, want: %d", w.Result().StatusCode, 401)
+		}
+	})
+	t.Run("Request with unauthorized role is 403", func(t *testing.T) {
+		w := FakeRequest(t, r, "GET", "", "/ping", map[string]string{"Cookie": "sessid=" + sess2.SessID})
+
+		if w.Result().StatusCode != 403 {
+			t.Errorf("Wrong StatusCode, have: %d, want: %d", w.Result().StatusCode, 403)
 		}
 	})
 }

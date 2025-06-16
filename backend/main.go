@@ -100,7 +100,7 @@ func main() {
 	r.Use(jlogging.Middleware())
 
 	r.POST("/login", auth.Login(userStore, sessionStore))
-	r.POST("/signup-token", auth.AuthMiddleware(sessionStore), auth.CreateSignupToken(signupTokenStore))
+	r.POST("/signup-token", auth.AuthMiddleware(sessionStore, map[types.Role]struct{}{types.RoleSysAdmin: {}}), auth.CreateSignupToken(signupTokenStore))
 	r.POST("/signup", auth.Signup(userStore, signupTokenStore, sessionStore))
 
 	server := &http.Server{
