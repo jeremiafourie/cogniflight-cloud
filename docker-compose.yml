@@ -71,6 +71,10 @@ services:
       INFLUX_URL: "${INFLUXDB_URL:-http:influxdb:8086}"
       MQTT_URI: "${MQTTS_URL:-mosquitto:8883}"
       MQTT_INSECURE_SKIP_VERIFY: "${INSECURE_SKIP_VERIFY_MQTT:-true}"
+      BOOTSTRAP_USERNAME: "${BOOTSTRAP_USERNAME}"
+      BOOTSTRAP_EMAIL: "${BOOTSTRAP_EMAIL}"
+      BOOTSTRAP_PHONE: "${BOOTSTRAP_PHONE}"
+      BOOTSTRAP_PWD: "${BOOTSTRAP_PWD}"
     ports:
       - 8080:8080
     develop:
@@ -78,4 +82,6 @@ services:
         - action: sync+restart
           path: ./backend
           target: /app
+    profiles:
+      - backend
 

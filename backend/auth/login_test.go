@@ -1,22 +1,24 @@
 package auth
 
 import (
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jeremiafourie/cogniflight-cloud/backend/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestLogin(t *testing.T) {
+	hash_pwd, err := HashPwd("123pizza")
+	if err != nil {
+		t.Fatalf("HashPwd error: %v", err)
+	}
 	exampleUser := types.User{
 		ID:        primitive.NewObjectID(),
 		Name:      "John Doe",
 		Email:     "example@gmail.com",
-		Pwd:       "123pizza",
+		Pwd:       hash_pwd,
 		Role:      types.RolePilot,
 		CreatedAt: time.Now(),
 	}
@@ -27,12 +29,12 @@ func TestLogin(t *testing.T) {
 	}
 	sessionStore := &FakeSessionStore{}
 
-	r := gin.New()
-	r.POST("/login", Login(userStore, sessionStore))
+	r := InitTestEngine()
+	r.POST("/login", Login(&userStore, sessionStore))
 
 	t.Run("Correct credentials", func(t *testing.T) {
 		body := `{"email": "example@gmail.com", "pwd": "123pizza"}`
-		w := FakeRequest(t, r, "POST", body, "/login")
+		w := FakeRequest(t, r, "POST", body, "/login", nil)
 
 		if w.Result().StatusCode != 200 {
 			t.Errorf("Wrong StatusCode: want %d, got %d", 200, w.Result().StatusCode)
@@ -56,7 +58,7 @@ func TestLogin(t *testing.T) {
 	sessionStore.CreateCalled = false
 	t.Run("Incorrect password", func(t *testing.T) {
 		body := `{"email": "example@gmail.com", "pwd": "password"}`
-		w := FakeRequest(t, r, "POST", body, "/login")
+		w := FakeRequest(t, r, "POST", body, "/login", nil)
 
 		if w.Result().StatusCode != 401 {
 			t.Errorf("Wrong StatusCode: want %d, got %d", 401, w.Result().StatusCode)
@@ -69,7 +71,7 @@ func TestLogin(t *testing.T) {
 	sessionStore.CreateCalled = false
 	t.Run("Malformed request body", func(t *testing.T) {
 		body := `{"email": "example@gmail.com", "pwd": "123pizza"`
-		w := FakeRequest(t, r, "POST", body, "/login")
+		w := FakeRequest(t, r, "POST", body, "/login", nil)
 
 		if w.Result().StatusCode != 400 {
 			t.Errorf("Wrong StatusCode: want %d, got %d", 400, w.Result().StatusCode)
@@ -78,16 +80,4 @@ func TestLogin(t *testing.T) {
 			t.Errorf("Expected sessionStore not to be called")
 		}
 	})
-}
-
-func FakeRequest(t testing.TB, r *gin.Engine, method, body, uri string) *httptest.ResponseRecorder {
-	t.Helper()
-
-	req := httptest.NewRequest(method, uri, strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	return w
 }
