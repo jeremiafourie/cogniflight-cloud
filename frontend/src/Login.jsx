@@ -1,26 +1,18 @@
-import { useCallback, useState } from "react"
+import { useCallback, useState} from "react"
+import { Login as apiLogin } from "./api/auth"
+import { useNavigate } from "react-router-dom"
 
-function App() {
+function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const navigate = useNavigate();
 
   const submitFn = useCallback(async (e) => {
     e.preventDefault()
 
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({email: email, pwd: password})
-    });
-
-    if(!res.ok) {
-      if(res.status == 401) {
-        console.log('Invalid credentials.')
-      } else {
-        console.log('Unknown response code: ', res.status)
-      }
+    const result = await apiLogin({email, pwd: password});
+    if(result.authorized) {
+      navigate("/home");
     }
   }, [email, password])
 
@@ -46,4 +38,4 @@ function App() {
   )
 }
 
-export default App
+export default Login
